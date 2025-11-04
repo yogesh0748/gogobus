@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:gogobusapp/widgets/animated_logo.dart'; // Assuming AnimatedLogo is in this path
+import 'package:gogobusapp/widgets/animated_logo.dart'; 
+import 'package:firebase_auth/firebase_auth.dart'; // <--- ADD THIS
 
 class Navbar extends StatefulWidget implements PreferredSizeWidget {
-  const Navbar({super.key});
+  final User? user; // <--- ADD THIS PROPERTY
+
+  const Navbar({super.key, this.user}); // <--- UPDATE CONSTRUCTOR
 
   @override
   State<Navbar> createState() => _NavbarState();
@@ -18,8 +21,8 @@ class _NavbarState extends State<Navbar> with SingleTickerProviderStateMixin {
 
   bool _isOpen = false;
   bool _journeyMenuOpen = false;
-  String _firstName = "User"; // Placeholder for user's first name
-  bool _isUserLoggedIn = false; // Placeholder for user login status
+  // String _firstName = "User"; // REMOVED: Derived from widget.user
+  // bool _isUserLoggedIn = false; // REMOVED: Derived from widget.user
 
   @override
   void initState() {
@@ -62,21 +65,24 @@ class _NavbarState extends State<Navbar> with SingleTickerProviderStateMixin {
     });
   }
 
-  void _handleLogout() {
+  void _handleLogout() async { // <--- MAKE ASYNC
     print('Logging out...');
-    setState(() {
-      _isUserLoggedIn = false; // Simulate logout
-    });
-    _navigateTo('/');
+    try {
+      await FirebaseAuth.instance.signOut(); // <--- FIREBASE LOGOUT
+      // Navigation is now handled by the StreamBuilder in main.dart
+    } catch (e) {
+      print('Logout Error: $e');
+      // Optionally show a snackbar error
+    }
   }
 
   void _goToJourneys(String filter) {
-    print('Going to journeys with filter: \$filter');
+    print('Going to journeys with filter: $filter');
     setState(() {
       _journeyMenuOpen = false;
       _isOpen = false;
     });
-    _navigateTo('/journeys?filter=\$filter');
+    _navigateTo('/journeys?filter=$filter');
   }
 
   final List<Map<String, String>> _navItems = [
@@ -89,6 +95,10 @@ class _NavbarState extends State<Navbar> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    // 👇 Derived status from the user object passed from main.dart
+    final bool isUserLoggedIn = widget.user != null;
+    final String firstName = widget.user?.displayName?.split(' ').first ?? 'User';
+
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 4,
@@ -116,7 +126,7 @@ class _NavbarState extends State<Navbar> with SingleTickerProviderStateMixin {
                             // 👇 Removed SizedBox to eliminate gap
                             SlideTransition(
                               position: _textAnimation,
-                              child: Text(
+                              child: const Text(
                                 'GOGOBUS',
                                 style: TextStyle(
                                   color: Color(0xFF00C4B4),
@@ -152,9 +162,11 @@ class _NavbarState extends State<Navbar> with SingleTickerProviderStateMixin {
                       // Journeys Dropdown
                       _buildJourneysDropdown(),
                       ..._navItems.map((item) => _buildNavItem(item)).toList(),
-                      if (_isUserLoggedIn) ...[
+
+                      // 👇 START AUTHENTICATION LOGIC
+                      if (isUserLoggedIn) ...[
                         Text(
-                          'Hello, \$$_firstName',
+                          'Hello, $firstName', // <--- DISPLAY USERNAME
                           style: const TextStyle(
                             color: Colors.black54,
                             fontSize: 14,
@@ -199,7 +211,7 @@ class _NavbarState extends State<Navbar> with SingleTickerProviderStateMixin {
                         ),
                         const SizedBox(width: 16),
                         ElevatedButton(
-                          onPressed: _handleLogout,
+                          onPressed: _handleLogout, // <--- LOGOUT BUTTON
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red,
                             foregroundColor: Colors.white,
@@ -215,7 +227,7 @@ class _NavbarState extends State<Navbar> with SingleTickerProviderStateMixin {
                         ),
                       ] else ...[
                         ElevatedButton(
-                          onPressed: () => _navigateTo('/signup'),
+                          onPressed: () => _navigateTo('/signup'), // <--- SIGNUP BUTTON
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
                             foregroundColor: Colors.white,
@@ -230,6 +242,7 @@ class _NavbarState extends State<Navbar> with SingleTickerProviderStateMixin {
                           child: const Text('Sign up'),
                         ),
                       ],
+                      // 👆 END AUTHENTICATION LOGIC
                     ],
                   ),
               ],
@@ -238,88 +251,90 @@ class _NavbarState extends State<Navbar> with SingleTickerProviderStateMixin {
         },
       ),
       bottom: _isOpen
-          ? PreferredSize(
-              preferredSize: Size.fromHeight(
-                MediaQuery.of(context).size.height -
-                    AppBar().preferredSize.height -
-                    MediaQuery.of(context).padding.top,
-              ),
-              child: Container(
-                color: Colors.white,
-                width: double.infinity,
-                height:
+              ? PreferredSize(
+                  preferredSize: Size.fromHeight(
                     MediaQuery.of(context).size.height -
-                    AppBar().preferredSize.height -
-                    MediaQuery.of(context).padding.top,
-                padding: const EdgeInsets.all(16.0),
-                // 👇 Wrap with SingleChildScrollView to prevent overflow
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 👇 Logo + Close Button Row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        AppBar().preferredSize.height -
+                        MediaQuery.of(context).padding.top,
+                  ),
+                  child: Container(
+                    color: Colors.white,
+                    width: double.infinity,
+                    height:
+                        MediaQuery.of(context).size.height -
+                        AppBar().preferredSize.height -
+                        MediaQuery.of(context).padding.top,
+                    padding: const EdgeInsets.all(16.0),
+                    // 👇 Wrap with SingleChildScrollView to prevent overflow
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          GestureDetector(
-                            onTap: () {
-                              _navigateTo('/');
-                              setState(() {
-                                _isOpen = false;
-                              });
-                            },
-                            child: const Row(
-                              children: [
-                                AnimatedLogo(),
-                                SizedBox(width: 8),
-                                Text(
-                                  'GOGOBUS',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 18,
-                                  ),
+                          // 👇 Logo + Close Button Row
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  _navigateTo('/');
+                                  setState(() {
+                                    _isOpen = false;
+                                  });
+                                },
+                                child: const Row(
+                                  children: [
+                                    AnimatedLogo(),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'GOGOBUS',
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close, color: Colors.black),
+                                onPressed: () {
+                                  setState(() {
+                                    _isOpen = false;
+                                  });
+                                },
+                              ),
+                            ],
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.close, color: Colors.black),
-                            onPressed: () {
-                              setState(() {
-                                _isOpen = false;
-                              });
-                            },
-                          ),
+
+                          const SizedBox(height: 24),
+
+                          _buildJourneysDropdown(isMobile: true),
+                          ..._navItems
+                              .map((item) => _buildMobileNavItem(item))
+                              .toList(),
+
+                          // 👇 MOBILE AUTHENTICATION LOGIC
+                          if (isUserLoggedIn) ...[
+                            const Divider(),
+                            _buildMobileNavItem({
+                              'label': 'Logout (Hello, $firstName)', // <--- Mobile Display
+                              'to': '/logout',
+                            }, onPressed: _handleLogout),
+                          ] else ...[
+                            const Divider(),
+                            _buildMobileNavItem({
+                              'label': 'Sign up',
+                              'to': '/signup',
+                            }),
+                          ],
+                          // 👆 END MOBILE AUTHENTICATION LOGIC
                         ],
                       ),
-
-                      const SizedBox(height: 24),
-
-                      _buildJourneysDropdown(isMobile: true),
-                      ..._navItems
-                          .map((item) => _buildMobileNavItem(item))
-                          .toList(),
-
-                      if (_isUserLoggedIn) ...[
-                        const Divider(),
-                        _buildMobileNavItem({
-                          'label': 'Logout',
-                          'to': '/logout',
-                        }, onPressed: _handleLogout),
-                      ] else ...[
-                        const Divider(),
-                        _buildMobileNavItem({
-                          'label': 'Sign up',
-                          'to': '/signup',
-                        }),
-                      ],
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            )
-          : null,
+                )
+              : null,
     );
   }
 
@@ -343,9 +358,9 @@ class _NavbarState extends State<Navbar> with SingleTickerProviderStateMixin {
             ),
           ),
           if (_journeyMenuOpen)
-            Icon(Icons.arrow_drop_up, color: Colors.black54)
+            const Icon(Icons.arrow_drop_up, color: Colors.black54)
           else
-            Icon(Icons.arrow_drop_down, color: Colors.black54),
+            const Icon(Icons.arrow_drop_down, color: Colors.black54),
         ],
       ),
     );

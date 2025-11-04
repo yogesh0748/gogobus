@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "1049676598289",
+    "project_id": "jwt-auth-782ea",
+    "storage_bucket": "jwt-auth-782ea.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1049676598289:android:df362d679d1fec2396f5b0",
+        "android_client_info": {
+          "package_name": "com.example.gogobusapp1"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1049676598289-991sqoqqneqcvh9gug8i65cjfmbeefun.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAeZ-cuY-jXHbD8Kyd8aRHi9YmN5j1-QNQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1049676598289-991sqoqqneqcvh9gug8i65cjfmbeefun.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1049676598289-760au5n7c04go99ccd5s491o9ltqqdvd.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.gogobusapp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

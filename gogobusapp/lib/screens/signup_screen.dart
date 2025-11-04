@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // 1. Import Firebase Auth
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -8,6 +9,9 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
+  // Get an instance of the Firebase Authentication service
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   bool isSignup = true;
   bool loading = false;
   String error = "";
@@ -18,26 +22,76 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController password = TextEditingController();
 
   void handleSubmit() async {
-    setState(() {
-      loading = true;
-      error = "";
-    });
-
-    await Future.delayed(const Duration(seconds: 2)); // simulate API
-
+    // 1. Initial State Check and Loading
     if (email.text.isEmpty || password.text.isEmpty) {
       setState(() {
-        error = "Please fill all fields";
-        loading = false;
+        error = "Please enter both email and password.";
       });
       return;
     }
 
     setState(() {
-      loading = false;
+      loading = true;
+      error = "";
     });
 
-    Navigator.pop(context);
+    try {
+      if (isSignup) {
+        // 2. FIREBASE SIGN UP LOGIC
+        await _auth.createUserWithEmailAndPassword(
+          email: email.text.trim(),
+          password: password.text.trim(),
+        );
+        
+        // Optionally update display name after sign-up
+        await _auth.currentUser?.updateDisplayName("${fname.text} ${lname.text}");
+        
+      } else {
+        // 3. FIREBASE SIGN IN LOGIC
+        await _auth.signInWithEmailAndPassword(
+          email: email.text.trim(),
+          password: password.text.trim(),
+        );
+      }
+
+      // 4. Success: Navigate away and reset loading
+      setState(() {
+        loading = false;
+      });
+      
+      // If successful, navigate back (or to the main screen)
+      Navigator.pop(context);
+
+    } on FirebaseAuthException catch (e) {
+      // 5. Error Handling
+      String errorMessage = "An unknown error occurred.";
+      if (e.code == 'weak-password') {
+        errorMessage = 'The password provided is too weak.';
+      } else if (e.code == 'email-already-in-use') {
+        errorMessage = 'The account already exists for that email.';
+      } else if (e.code == 'user-not-found') {
+        errorMessage = 'No user found for that email.';
+      } else if (e.code == 'wrong-password') {
+        errorMessage = 'Wrong password provided for that user.';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'The email address is not valid.';
+      } else {
+        // Fallback for other errors like network issues
+        errorMessage = e.message ?? errorMessage;
+      }
+      
+      setState(() {
+        error = errorMessage;
+        loading = false;
+      });
+      
+    } catch (e) {
+      // General error (e.g., network)
+      setState(() {
+        error = "Network or connectivity error. Please try again.";
+        loading = false;
+      });
+    }
   }
 
   @override
@@ -68,8 +122,9 @@ class _SignupScreenState extends State<SignupScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    // NOTE: Ensure you have 'assets/logo.png' configured in pubspec.yaml
                     Image.asset(
-                      'assets/logo.png', // make sure you have this asset
+                      'assets/logo.png', 
                       height: 40,
                     ),
                     const SizedBox(width: 8),
@@ -111,6 +166,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
                 const SizedBox(height: 15),
 
+                // Error Message Display
                 if (error.isNotEmpty)
                   Container(
                     padding: const EdgeInsets.all(10),
@@ -125,6 +181,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 const SizedBox(height: 15),
 
+                // First/Last Name Fields (Signup only)
                 if (isSignup)
                   Row(
                     children: [
@@ -135,12 +192,14 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 if (isSignup) const SizedBox(height: 10),
 
+                // Email and Password Fields
                 buildInput("Email", email),
                 const SizedBox(height: 10),
                 buildInput("Password", password, isPassword: true),
 
                 const SizedBox(height: 20),
 
+                // Submit Button
                 ElevatedButton(
                   onPressed: loading ? null : handleSubmit,
                   style: ElevatedButton.styleFrom(
@@ -185,6 +244,7 @@ class _SignupScreenState extends State<SignupScreen> {
     return TextField(
       controller: controller,
       obscureText: isPassword,
+      keyboardType: hint.toLowerCase().contains("email") ? TextInputType.emailAddress : TextInputType.text, // Better UX
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.black45),
@@ -202,7 +262,10 @@ class _SignupScreenState extends State<SignupScreen> {
     final bool selected = isSignup == signup;
     return Expanded(
       child: TextButton(
-        onPressed: () => setState(() => isSignup = signup),
+        onPressed: () => setState(() {
+          isSignup = signup;
+          error = ""; // Clear error when toggling mode
+        }),
         style: TextButton.styleFrom(
           backgroundColor:
               selected ? const Color(0xFF00C4B4) : Colors.transparent,
