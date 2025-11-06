@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:gogobusapp/widgets/animated_logo.dart'; 
-import 'package:firebase_auth/firebase_auth.dart'; // <--- ADD THIS
+import 'package:gogobusapp/widgets/animated_logo.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class Navbar extends StatefulWidget implements PreferredSizeWidget {
   final User? user; // <--- ADD THIS PROPERTY
@@ -21,8 +21,6 @@ class _NavbarState extends State<Navbar> with SingleTickerProviderStateMixin {
 
   bool _isOpen = false;
   bool _journeyMenuOpen = false;
-  // String _firstName = "User"; // REMOVED: Derived from widget.user
-  // bool _isUserLoggedIn = false; // REMOVED: Derived from widget.user
 
   @override
   void initState() {
@@ -59,13 +57,20 @@ class _NavbarState extends State<Navbar> with SingleTickerProviderStateMixin {
 
   // Placeholder for navigation
   void _navigateTo(String route) {
-    Navigator.pushNamed(context, route);
+    // Note: This implementation assumes the route exists in the main MaterialApp routes
+    if (route == '/') {
+      Navigator.popUntil(context, (route) => route.isFirst);
+    } else if (route != '/logout') {
+      Navigator.pushNamed(context, route);
+    }
+
     setState(() {
       _isOpen = false;
     });
   }
 
-  void _handleLogout() async { // <--- MAKE ASYNC
+  void _handleLogout() async {
+    // <--- MAKE ASYNC
     print('Logging out...');
     try {
       await FirebaseAuth.instance.signOut(); // <--- FIREBASE LOGOUT
@@ -82,6 +87,7 @@ class _NavbarState extends State<Navbar> with SingleTickerProviderStateMixin {
       _journeyMenuOpen = false;
       _isOpen = false;
     });
+    // This route is not defined in main.dart, it would likely lead to an error or another screen.
     _navigateTo('/journeys?filter=$filter');
   }
 
@@ -97,7 +103,8 @@ class _NavbarState extends State<Navbar> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) {
     // 👇 Derived status from the user object passed from main.dart
     final bool isUserLoggedIn = widget.user != null;
-    final String firstName = widget.user?.displayName?.split(' ').first ?? 'User';
+    final String firstName =
+        widget.user?.displayName?.split(' ').first ?? 'User';
 
     return AppBar(
       backgroundColor: Colors.white,
@@ -227,7 +234,8 @@ class _NavbarState extends State<Navbar> with SingleTickerProviderStateMixin {
                         ),
                       ] else ...[
                         ElevatedButton(
-                          onPressed: () => _navigateTo('/signup'), // <--- SIGNUP BUTTON
+                          onPressed: () =>
+                              _navigateTo('/signup'), // <--- SIGNUP BUTTON
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
                             foregroundColor: Colors.white,
@@ -251,90 +259,91 @@ class _NavbarState extends State<Navbar> with SingleTickerProviderStateMixin {
         },
       ),
       bottom: _isOpen
-              ? PreferredSize(
-                  preferredSize: Size.fromHeight(
+          ? PreferredSize(
+              preferredSize: Size.fromHeight(
+                MediaQuery.of(context).size.height -
+                    AppBar().preferredSize.height -
+                    MediaQuery.of(context).padding.top,
+              ),
+              child: Container(
+                color: Colors.white,
+                width: double.infinity,
+                height:
                     MediaQuery.of(context).size.height -
-                        AppBar().preferredSize.height -
-                        MediaQuery.of(context).padding.top,
-                  ),
-                  child: Container(
-                    color: Colors.white,
-                    width: double.infinity,
-                    height:
-                        MediaQuery.of(context).size.height -
-                        AppBar().preferredSize.height -
-                        MediaQuery.of(context).padding.top,
-                    padding: const EdgeInsets.all(16.0),
-                    // 👇 Wrap with SingleChildScrollView to prevent overflow
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    AppBar().preferredSize.height -
+                    MediaQuery.of(context).padding.top,
+                padding: const EdgeInsets.all(16.0),
+                // 👇 Wrap with SingleChildScrollView to prevent overflow
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 👇 Logo + Close Button Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // 👇 Logo + Close Button Row
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  _navigateTo('/');
-                                  setState(() {
-                                    _isOpen = false;
-                                  });
-                                },
-                                child: const Row(
-                                  children: [
-                                    AnimatedLogo(),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'GOGOBUS',
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 18,
-                                      ),
-                                    ),
-                                  ],
+                          GestureDetector(
+                            onTap: () {
+                              _navigateTo('/');
+                              setState(() {
+                                _isOpen = false;
+                              });
+                            },
+                            child: const Row(
+                              children: [
+                                AnimatedLogo(),
+                                SizedBox(width: 8),
+                                Text(
+                                  'GOGOBUS',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 18,
+                                  ),
                                 ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.close, color: Colors.black),
-                                onPressed: () {
-                                  setState(() {
-                                    _isOpen = false;
-                                  });
-                                },
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-
-                          const SizedBox(height: 24),
-
-                          _buildJourneysDropdown(isMobile: true),
-                          ..._navItems
-                              .map((item) => _buildMobileNavItem(item))
-                              .toList(),
-
-                          // 👇 MOBILE AUTHENTICATION LOGIC
-                          if (isUserLoggedIn) ...[
-                            const Divider(),
-                            _buildMobileNavItem({
-                              'label': 'Logout (Hello, $firstName)', // <--- Mobile Display
-                              'to': '/logout',
-                            }, onPressed: _handleLogout),
-                          ] else ...[
-                            const Divider(),
-                            _buildMobileNavItem({
-                              'label': 'Sign up',
-                              'to': '/signup',
-                            }),
-                          ],
-                          // 👆 END MOBILE AUTHENTICATION LOGIC
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.black),
+                            onPressed: () {
+                              setState(() {
+                                _isOpen = false;
+                              });
+                            },
+                          ),
                         ],
                       ),
-                    ),
+
+                      const SizedBox(height: 24),
+
+                      _buildJourneysDropdown(isMobile: true),
+                      ..._navItems
+                          .map((item) => _buildMobileNavItem(item))
+                          .toList(),
+
+                      // 👇 MOBILE AUTHENTICATION LOGIC
+                      if (isUserLoggedIn) ...[
+                        const Divider(),
+                        _buildMobileNavItem({
+                          'label':
+                              'Logout (Hello, $firstName)', // <--- Mobile Display
+                          'to': '/logout',
+                        }, onPressed: _handleLogout),
+                      ] else ...[
+                        const Divider(),
+                        _buildMobileNavItem({
+                          'label': 'Sign up',
+                          'to': '/signup',
+                        }),
+                      ],
+                      // 👆 END MOBILE AUTHENTICATION LOGIC
+                    ],
                   ),
-                )
-              : null,
+                ),
+              ),
+            )
+          : null,
     );
   }
 

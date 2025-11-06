@@ -1,7 +1,7 @@
 // lib/widgets/app_footer.dart
 
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart'; // Requires dependency
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class AppFooter extends StatelessWidget {
   const AppFooter({super.key});
@@ -13,8 +13,12 @@ class AppFooter extends StatelessWidget {
     final bool isDesktop = screenWidth > 992;
     
     // Define the primary and accent colors from your theme
-    const Color primaryColor = Colors.deepPurple;
+    const Color primaryColor = Color.fromARGB(255, 22, 22, 22);
     const Color accentColor = Color(0xFF00C4B4); // Your GOGOBUS teal color
+
+    // Define the dark gradient colors
+    const Color startColor = Color.fromARGB(255, 9, 9, 9); // Darker purple
+    const Color endColor = primaryColor; // Original deep purple
 
     // Define Footer Link Sections
     final List<Map<String, dynamic>> sections = [
@@ -48,7 +52,15 @@ class AppFooter extends StatelessWidget {
     ];
 
     return Container(
-      color: primaryColor, // Use the primary theme color for the footer background
+      // 💡 MODIFICATION START: Replaced 'color' with 'decoration' for the gradient
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [startColor, endColor], 
+        ),
+      ),
+      
       padding: EdgeInsets.symmetric(
         horizontal: isDesktop ? 60 : 20,
         vertical: 40,
@@ -60,38 +72,38 @@ class AppFooter extends StatelessWidget {
           // 1. MAIN CONTENT (Links and Branding)
           isDesktop
               ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Brand Logo/Name
-                    _buildBranding(accentColor),
-                    
-                    // Link Sections
-                    ...sections.map((section) => _buildLinkSection(
-                          section['title'] as String,
-                          section['links'] as List<Map<String, String>>,
-                          isDesktop: isDesktop,
-                        )),
-                    
-                    // Social Media/CTA (Optional separate column)
-                    _buildSocialAndAppStore(accentColor),
-                  ],
-                )
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Brand Logo/Name
+                      _buildBranding(accentColor),
+                      
+                      // Link Sections
+                      ...sections.map((section) => _buildLinkSection(
+                              section['title'] as String,
+                              section['links'] as List<Map<String, String>>,
+                              isDesktop: isDesktop,
+                            )),
+                      
+                      // Social Media/CTA (Optional separate column)
+                      _buildSocialAndAppStore(accentColor),
+                    ],
+                  )
               : Column( // Mobile Layout
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildBranding(accentColor),
-                    const SizedBox(height: 30),
-                    // Stack sections vertically on mobile
-                    ...sections.map((section) => _buildLinkSection(
-                          section['title'] as String,
-                          section['links'] as List<Map<String, String>>,
-                          isDesktop: isDesktop,
-                        )),
-                    const SizedBox(height: 30),
-                    _buildSocialAndAppStore(accentColor),
-                  ],
-                ),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildBranding(accentColor),
+                      const SizedBox(height: 30),
+                      // Stack sections vertically on mobile
+                      ...sections.map((section) => _buildLinkSection(
+                              section['title'] as String,
+                              section['links'] as List<Map<String, String>>,
+                              isDesktop: isDesktop,
+                            )),
+                      const SizedBox(height: 30),
+                      _buildSocialAndAppStore(accentColor),
+                    ],
+                  ),
           
           // Divider Line
           const Padding(

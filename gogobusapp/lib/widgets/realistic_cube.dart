@@ -24,7 +24,7 @@ class _RealisticCubeState extends State<RealisticCube> with TickerProviderStateM
   late Animation<double> _translateX;
   late Animation<double> _translateY;
 
-  double _size = 300.0; // Initial max size
+  double _size = 100.0; // Initial max size
 
   @override
   void initState() {
